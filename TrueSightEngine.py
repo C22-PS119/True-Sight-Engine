@@ -4,11 +4,11 @@ import pandas as pd
 import string
 import numpy as np
 
-PREPOSISI: list = ['di', 'dan', 'yang', 'atau', 'dari', 'pada', 'sejak', 'ke', 'untuk', 'buat',
-                   'akan', 'bagi', 'oleh', 'tentang', 'yaitu', 'ala', 'kepada', 'daripada', 'dalam']
-
 
 class SearchEngine:
+
+    PREPOSISI: list = ['di', 'dan', 'yang', 'atau', 'dari', 'pada', 'sejak', 'ke', 'untuk', 'buat',
+                       'akan', 'bagi', 'oleh', 'tentang', 'yaitu', 'ala', 'kepada', 'daripada', 'dalam']
 
     def RemoveStopWords(words: list, preposisi=PREPOSISI) -> list:
         """Remove puchtuation and preposisi words"""
@@ -23,7 +23,7 @@ class SearchEngine:
         Returning array of tuple (float accuracy, str text)
         """
         data = list(data)
-        search_words = RemoveStopWords(keywords.split())
+        search_words = SearchEngine.RemoveStopWords(keywords.split())
         filtered_keywords = ' '.join(search_words)
 
         vectorizer = TfidfVectorizer()
