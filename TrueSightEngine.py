@@ -19,7 +19,7 @@ def search(keywords: str, data, search_accuracy: float = 0.5) -> list:
     Search keywords in dataframe
 
     Returns:
-    Returning list of search result (float accuracy, str text)
+    Returning array of tuple (float accuracy, str text)
     """
     data = list(data)
     search_words = RemoveStopWords(keywords.split())
@@ -30,16 +30,17 @@ def search(keywords: str, data, search_accuracy: float = 0.5) -> list:
     X = X.T.toarray()
     data_frame = pd.DataFrame(X, index=vectorizer.get_feature_names_out())
 
-    vect_q = vectorizer.transform(
+    word_vect = vectorizer.transform(
         [filtered_keywords]).toarray().reshape(data_frame.shape[0],)
-    word_rate = {}
+    search_rate = {}
 
     for i in range(len(data)):
-        word_rate[i] = np.dot(data_frame.loc[:, i].values, vect_q) / np.linalg.norm(
-            data_frame.loc[:, i]) * np.linalg.norm(vect_q)
+        search_rate[i] = np.dot(data_frame.loc[:, i].values, word_vect) / np.linalg.norm(
+            data_frame.loc[:, i]) * np.linalg.norm(word_vect)
+        print(np.dot(data_frame.loc[:, i].values, word_vect))
 
     rate_sorted = sorted(
-        word_rate.items(), key=lambda x: x[1], reverse=True)
+        search_rate.items(), key=lambda x: x[1], reverse=True)
     result = []
 
     for k, v in rate_sorted:
