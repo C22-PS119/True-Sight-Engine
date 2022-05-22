@@ -87,20 +87,46 @@ class DataFilter:
         return filtered
 
 
+def error(error_desc: str):
+    print(error_desc)
+    sys.exit(1)
+
+
 def main():
     if (len(sys.argv) > 2):
         encoding = 'utf-8'
         replace_emoji, replace_unicode = '', ' '
         output_file = sys.argv[2]
+        headers = []
         for arg in sys.argv[2:]:
             if arg.startswith('--encoding'):
-                encoding = arg.split('=')[1]
+                if len(arg.split('=')) > 1:
+                    encoding = arg.split('=')[1]
+                else:
+                    error('please input --encoding value!')
             if arg.startswith('--replace_emoji'):
-                replace_emoji = arg.split('=')[1]
+                if len(arg.split('=')) > 1:
+                    replace_emoji = arg.split('=')[1]
+                else:
+                    error('please input --replace_emoji value!')
             if arg.startswith('--replace_unicode'):
-                replace_unicode = arg.split('=')[1]
+                if len(arg.split('=')) > 1:
+                    replace_unicode = arg.split('=')[1]
+                else:
+                    error('please input --replace_unicode value!')
             if arg.startswith('-o'):
-                output_file = arg.split('=')[1]
+                if len(arg.split('=')) > 1:
+                    output_file = arg.split('=')[1]
+                else:
+                    error('please input --replace_emoji value!')
+            if arg.startswith('--header'):
+                if len(arg.split('=')) > 1:
+                    headers = arg.split('=')[1].split(',')
+                else:
+                    error('please input --header value!')
+
+        if (len(headers) == 0):
+            error('Please input --header!')
 
         source_file = open(sys.argv[1], 'r', encoding=encoding)
         dest_file = open(output_file, 'w', encoding=encoding, newline='')
@@ -116,13 +142,13 @@ def main():
         )
         data = list(reader)
         filtered = data_filter.dictionaryFilter(
-            data, ['title', 'byline', 'content'], replace_emoji, replace_unicode)
+            data, headers, replace_emoji, replace_unicode)
         writer.writeheader()
         writer.writerows(filtered)
     elif (len(sys.argv) == 2):
-        print("Please input destination file!")
+        error("Please input destination file!")
     else:
-        print("Please input source file!")
+        error("Please input source file!")
 
 
 if __name__ == '__main__':
