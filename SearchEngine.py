@@ -2,8 +2,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
 import string
 import numpy as np
-from TrueSightEngine import SearchEngine as TS
-from TrueSightEngine import TimeExecution
+from TrueSightUltility import SearchEngine as TS
+from TrueSightUltility import TimeExecution
 from datetime import datetime
 
 
