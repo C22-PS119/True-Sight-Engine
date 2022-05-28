@@ -6,7 +6,6 @@ from TrueSightEngine import SearchEngine as TS
 from TrueSightEngine import TimeExecution
 from datetime import datetime
 
-
 # buildder = {}
 
 # TS.addDataToDictionary({'berita': 'berita ke1', 'isi': 'random1'}, buildder)

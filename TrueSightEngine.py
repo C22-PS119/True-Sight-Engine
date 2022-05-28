@@ -1,16 +1,14 @@
 from transformers import BertTokenizer
+import transformers
 from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.corpus import stopwords
-from tqdm import tqdm
-import nltk
 import string
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 from datetime import datetime
-
-configuration = tf.compat.v1.ConfigProto(device_count={"GPU": 0})
-session = tf.compat.v1.Session(config=configuration)
+import pickle
+import cloudstorage as gcs
 
 stop_words = stopwords.words('indonesian')
 
@@ -100,68 +98,36 @@ class SearchEngine:
         datalist = list()
         result = []
 
-        timecount = TimeExecution()
-        timecount.init()
-        print("Convert dictionary to list")
-
         for header in list(lookupHeader):
             for i, (_, item) in enumerate(data[header].items()):
                 if len(datalist) <= i:
                     datalist.append(item)
                 else:
                     datalist[i] += " " + item
-        timecount.end()
-
-        timecount.init()
-        print("Remove stopWords")
 
         search_words = SearchEngine.RemoveStopWords(
             keywords.split()) if use_stopwords else keywords.split()
         filtered_keywords = ' '.join(
             search_words) if use_stopwords else keywords
 
-        timecount.end()
-
-        timecount.init()
-        print("Vectorization")
-
         vectorizer = TfidfVectorizer()
         X = vectorizer.fit_transform(datalist)
         X = X.T.toarray()
         data_frame = pd.DataFrame(X, index=vectorizer.get_feature_names_out())
 
-        timecount.end()
-
-        timecount.init()
-        print("Transform")
-
         word_vect = vectorizer.transform(
             [filtered_keywords]).toarray().reshape(data_frame.shape[0],)
         search_rate = {}
-
-        timecount.end()
-
-        timecount.init()
-        print("Calculating rate")
 
         norm_vector = np.linalg.norm(word_vect)
         for i in range(len(datalist)):
             search_rate[i] = np.dot(data_frame.loc[:, i].values, word_vect) / np.linalg.norm(
                 data_frame.loc[:, i]) * norm_vector
 
-        timecount.end()
-
-        timecount.init()
-        print("Sorting")
-
         rate_sorted = sorted(
             search_rate.items(), key=lambda x: x[1], reverse=True)
         result = []
 
-        timecount.end()
-
-        timecount.init()
-        print("Generate Result")
         for k, v in rate_sorted:
             word_found = 0
             if v != 0.0:
@@ -173,19 +139,31 @@ class SearchEngine:
                     data_row = {}
                     for header in list(data.keys()):
                         data_row[header] = data[header][k]
-                    result.append((v, data_row))
-
-        timecount.end()
+                    result.append({'rate': v, 'row': data_row})
 
         return result
 
 
 class TensorHelper:
 
-    def __init__(self, threshold) -> None:
+    def __init__(self, threshold, gpu=True) -> None:
         self.THRESHOLD = threshold
+        if not gpu:
+            configuration = tf.compat.v1.ConfigProto(device_count={"GPU": 0})
+            session = tf.compat.v1.Session(config=configuration)
+
         self.bert_tokenizer = BertTokenizer.from_pretrained(
             "indobenchmark/indobert-base-p1")
+
+    def loadTokenizer(self, filename: str):
+        if filename.startswith('gc://'):
+            with gcs.open(filename, 'wb') as handle:
+                pickle.dump(self.bert_tokenizer, handle,
+                            protocol=pickle.HIGHEST_PROTOCOL)
+        else:
+            with open(filename, 'wb') as handle:
+                pickle.dump(self.bert_tokenizer, handle,
+                            protocol=pickle.HIGHEST_PROTOCOL)
 
     def openModel(self, path):
         self.model = tf.keras.models.load_model(path)
@@ -195,8 +173,8 @@ class TensorHelper:
             self._bert_encode([claimtext], predict_text_length))
         return {
             'claim': claimtext,
-            'accuracy': result[0],
-            'fake': result[0] > self.THRESHOLD
+            'val_prediction': result[0][0],
+            'prediction': 'FAKE' if result[0] > self.THRESHOLD else 'FACT'
         }
 
     def saveModel(self, path):
